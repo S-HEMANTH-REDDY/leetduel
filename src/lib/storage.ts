@@ -48,6 +48,7 @@ export function emptyState(): CompetitionState {
       hemanth: 'Hemanth',
       abhiram: 'Abhiram',
     },
+    pins: { hemanth: '', abhiram: '' },
     paymentsCleared: { hemanth: 0, abhiram: 0 },
     paymentHistory: [],
   };
@@ -68,6 +69,10 @@ export function normalizeState(raw: Partial<CompetitionState> | null | undefined
     displayNames: {
       hemanth: r.displayNames?.hemanth ?? 'Hemanth',
       abhiram: r.displayNames?.abhiram ?? 'Abhiram',
+    },
+    pins: {
+      hemanth: r.pins?.hemanth ?? '',
+      abhiram: r.pins?.abhiram ?? '',
     },
     paymentsCleared: {
       hemanth: r.paymentsCleared?.hemanth ?? 0,
@@ -153,13 +158,33 @@ export function mergeStates(a: CompetitionState, b: CompetitionState): Competiti
   const createdAt =
     a.createdAt && b.createdAt ? (a.createdAt < b.createdAt ? a.createdAt : b.createdAt) : a.createdAt || b.createdAt;
 
+  // Keep whichever PIN is set (a device that just created one wins).
+  const pins = {
+    hemanth: a.pins?.hemanth || b.pins?.hemanth || '',
+    abhiram: a.pins?.abhiram || b.pins?.abhiram || '',
+  };
+
+  // Preserve custom display names: a non-default value wins over the default.
+  const pickName = (u: UserId, def: string) => {
+    const av = a.displayNames?.[u];
+    const bv = b.displayNames?.[u];
+    if (av && av !== def) return av;
+    if (bv && bv !== def) return bv;
+    return av || bv || def;
+  };
+  const displayNames = {
+    hemanth: pickName('hemanth', 'Hemanth'),
+    abhiram: pickName('abhiram', 'Abhiram'),
+  };
+
   return normalizeState({
     version: Math.max(a.version || 0, b.version || 0) + 1,
     createdAt,
     resetAt,
     tombstones,
     logs,
-    displayNames: { hemanth: 'Hemanth', abhiram: 'Abhiram' },
+    displayNames,
+    pins,
     paymentsCleared,
     paymentHistory,
   });
@@ -179,6 +204,7 @@ export function signature(state: CompetitionState): string {
     pc: state.paymentsCleared,
     hist,
     dn: state.displayNames,
+    pins: state.pins,
     resetAt: state.resetAt,
     tomb,
   });

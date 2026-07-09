@@ -40,6 +40,8 @@ export interface CompetitionState {
   tombstones: Record<string, string>;
   logs: DailyLog[];
   displayNames: Record<UserId, string>;
+  /** SHA-256 hash of each player's personal PIN ('' = not set yet). */
+  pins: Record<UserId, string>;
   /** How many times each person has already paid the outing bill. */
   paymentsCleared: Record<UserId, number>;
   /** Optional notes for each payment click (most recent first). */

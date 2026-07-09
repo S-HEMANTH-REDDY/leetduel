@@ -37,14 +37,20 @@ function secret(name, value) {
   });
 }
 
-const emptyState = () => ({
-  version: 1,
-  createdAt: new Date().toISOString(),
-  logs: [],
-  displayNames: { hemanth: 'Hemanth', abhiram: 'Abhiram' },
-  paymentsCleared: { hemanth: 0, abhiram: 0 },
-  paymentHistory: [],
-});
+const emptyState = () => {
+  const now = new Date().toISOString();
+  return {
+    version: 1,
+    createdAt: now,
+    resetAt: now,
+    tombstones: {},
+    logs: [],
+    displayNames: { hemanth: 'Hemanth', abhiram: 'Abhiram' },
+    pins: { hemanth: '', abhiram: '' },
+    paymentsCleared: { hemanth: 0, abhiram: 0 },
+    paymentHistory: [],
+  };
+};
 
 async function ensureApiObject(meta) {
   if (meta?.apiId) {

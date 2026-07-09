@@ -33,6 +33,16 @@ import { computePayTab, countsFromProblems, todayKey } from './scoring';
 
 export type SyncStatus = 'idle' | 'syncing' | 'saved' | 'error';
 
+// Lightweight PIN hashing — deters casual impersonation between two friends.
+const PIN_SALT = 'leetduel::v1::';
+async function hashPin(pin: string): Promise<string> {
+  const data = new TextEncoder().encode(PIN_SALT + pin);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 interface UpsertInput {
   problems: Problem[];
   notes: string;
@@ -44,7 +54,9 @@ interface AppContextValue {
   state: CompetitionState;
   syncStatus: SyncStatus;
   online: boolean;
-  loginAs: (userId: UserId) => boolean;
+  hasPin: (userId: UserId) => boolean;
+  createPin: (userId: UserId, pin: string) => Promise<boolean>;
+  loginWithPin: (userId: UserId, pin: string) => Promise<boolean>;
   logout: () => void;
   refresh: () => void;
   upsertLog: (input: UpsertInput) => Promise<{ log: DailyLog; isNew: boolean; goalJustMet: boolean }>;
@@ -217,9 +229,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, [runSync]);
 
-  const loginAs = useCallback((userId: UserId) => {
+  const hasPin = useCallback(
+    (userId: UserId) => Boolean(stateRef.current.pins?.[userId]),
+    [],
+  );
+
+  const loginWithPin = useCallback(async (userId: UserId, pin: string) => {
     const found = USERS.find((u) => u.id === userId);
     if (!found) return false;
+    const stored = stateRef.current.pins?.[userId];
+    if (!stored) return false;
+    const hash = await hashPin(pin);
+    if (hash !== stored) return false;
     setSession(found.id);
     setUser(found);
     return true;
@@ -246,6 +267,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return next;
     },
     [applyState, scheduleSync],
+  );
+
+  const createPin = useCallback(
+    async (userId: UserId, pin: string) => {
+      const found = USERS.find((u) => u.id === userId);
+      if (!found) return false;
+      // Never overwrite an existing PIN (prevents hijacking a set account).
+      if (stateRef.current.pins?.[userId]) return false;
+      const hash = await hashPin(pin);
+      commit((c) => ({ ...c, pins: { ...c.pins, [userId]: hash } }));
+      setSession(found.id);
+      setUser(found);
+      return true;
+    },
+    [commit],
   );
 
   const upsertLog = useCallback(
@@ -397,7 +433,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       state,
       syncStatus,
       online,
-      loginAs,
+      hasPin,
+      createPin,
+      loginWithPin,
       logout,
       refresh,
       upsertLog,
@@ -413,7 +451,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       state,
       syncStatus,
       online,
-      loginAs,
+      hasPin,
+      createPin,
+      loginWithPin,
       logout,
       refresh,
       upsertLog,
