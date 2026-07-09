@@ -4,17 +4,17 @@ const LOCAL_KEY = 'leetcode-duel-state';
 const SESSION_KEY = 'leetcode-duel-session';
 
 /**
- * Shared backend: JSONBlob (CORS-friendly).
- * Site host: GitHub Pages (trusted by Brave / Safe Browsing).
- * Credentials are injected at deploy time via VITE_* env vars.
+ * Shared backend: crudcrud.com (CORS-friendly).
+ * Site host: GitHub Pages (trusted by Brave).
+ * Injected at deploy: VITE_CC_ENDPOINT, VITE_CC_ID
  */
 export const REMOTE = {
-  baseUrl: 'https://jsonblob.com/api/jsonBlob',
-  id: import.meta.env.VITE_JB_ID as string | undefined,
+  endpoint: import.meta.env.VITE_CC_ENDPOINT as string | undefined,
+  id: import.meta.env.VITE_CC_ID as string | undefined,
 };
 
 export function remoteConfigured(): boolean {
-  return Boolean(REMOTE.id);
+  return Boolean(REMOTE.endpoint && REMOTE.id);
 }
 
 export function emptyState(): CompetitionState {
@@ -31,21 +31,22 @@ export function emptyState(): CompetitionState {
   };
 }
 
-/** Backfill fields added after the first deploy. */
-export function normalizeState(raw: CompetitionState): CompetitionState {
+export function normalizeState(raw: CompetitionState & { _id?: string }): CompetitionState {
+  const { _id: _ignored, ...rest } = raw as CompetitionState & { _id?: string };
+  void _ignored;
   return {
     ...emptyState(),
-    ...raw,
+    ...rest,
     displayNames: {
-      hemanth: raw.displayNames?.hemanth ?? 'Hemanth',
-      friend: raw.displayNames?.friend ?? 'Friend',
+      hemanth: rest.displayNames?.hemanth ?? 'Hemanth',
+      friend: rest.displayNames?.friend ?? 'Friend',
     },
-    logs: Array.isArray(raw.logs) ? raw.logs : [],
+    logs: Array.isArray(rest.logs) ? rest.logs : [],
     paymentsCleared: {
-      hemanth: raw.paymentsCleared?.hemanth ?? 0,
-      friend: raw.paymentsCleared?.friend ?? 0,
+      hemanth: rest.paymentsCleared?.hemanth ?? 0,
+      friend: rest.paymentsCleared?.friend ?? 0,
     },
-    paymentHistory: Array.isArray(raw.paymentHistory) ? raw.paymentHistory : [],
+    paymentHistory: Array.isArray(rest.paymentHistory) ? rest.paymentHistory : [],
   };
 }
 
@@ -63,9 +64,13 @@ function writeLocal(state: CompetitionState) {
   localStorage.setItem(LOCAL_KEY, JSON.stringify(state));
 }
 
+function resourceUrl() {
+  return `${REMOTE.endpoint}/duel/${REMOTE.id}`;
+}
+
 async function fetchRemote(): Promise<CompetitionState | null> {
   if (!remoteConfigured()) return null;
-  const res = await fetch(`${REMOTE.baseUrl}/${REMOTE.id}`, {
+  const res = await fetch(resourceUrl(), {
     headers: { Accept: 'application/json' },
     cache: 'no-store',
   });
@@ -76,17 +81,15 @@ async function fetchRemote(): Promise<CompetitionState | null> {
 
 async function saveRemote(state: CompetitionState): Promise<void> {
   if (!remoteConfigured()) return;
-  const res = await fetch(`${REMOTE.baseUrl}/${REMOTE.id}`, {
+  // crudcrud PUT body must NOT include _id
+  const res = await fetch(resourceUrl(), {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(state),
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`Failed to save remote state (${res.status}): ${text}`);
+    throw new Error(`Failed to save remote state (${res.status}): ${text.slice(0, 200)}`);
   }
 }
 
