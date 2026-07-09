@@ -84,9 +84,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const lastPullRef = useRef(0);
   const failCountRef = useRef(0);
 
-  // Free keyless backends cap daily requests, so pull sparingly.
-  const MIN_PULL_INTERVAL_MS = 45_000;
-  const POLL_INTERVAL_MS = 5 * 60_000;
+  // Firebase has no request cap, so we can keep the leaderboard feeling live.
+  const MIN_PULL_INTERVAL_MS = 6_000;
+  const POLL_INTERVAL_MS = 20_000;
 
   const applyState = useCallback((next: CompetitionState) => {
     stateRef.current = next;
