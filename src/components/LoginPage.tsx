@@ -29,7 +29,7 @@ export function LoginPage() {
               <span className="player-avatar">{u.displayName.slice(0, 1)}</span>
               <span className="player-meta">
                 <strong>{state.displayNames[u.id] || u.displayName}</strong>
-                <small>Continue as {u.id}</small>
+                <small>Tap to continue</small>
               </span>
             </button>
           ))}

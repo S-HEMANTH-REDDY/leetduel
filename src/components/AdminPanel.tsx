@@ -6,7 +6,7 @@ export function AdminPanel() {
   const { user, state, deleteLog, resetAll, updateDisplayName } = useApp();
   const [msg, setMsg] = useState('');
   const [nameA, setNameA] = useState(state.displayNames.hemanth);
-  const [nameB, setNameB] = useState(state.displayNames.friend);
+  const [nameB, setNameB] = useState(state.displayNames.abhiram);
 
   const myLogs = useMemo(
     () =>
@@ -20,21 +20,21 @@ export function AdminPanel() {
 
   if (!user?.isAdmin) return null;
 
-  async function onReset() {
+  function onReset() {
     if (!confirm('Reset the entire competition? This deletes all logs for both players.')) return;
-    await resetAll();
+    resetAll();
     setMsg('Competition reset.');
   }
 
-  async function onDelete(id: string) {
+  function onDelete(id: string) {
     if (!confirm('Delete this submission?')) return;
-    await deleteLog(id);
+    deleteLog(id);
     setMsg('Submission deleted.');
   }
 
-  async function onSaveNames() {
-    await updateDisplayName('hemanth', nameA);
-    await updateDisplayName('friend', nameB);
+  function onSaveNames() {
+    updateDisplayName('hemanth', nameA);
+    updateDisplayName('abhiram', nameB);
     setMsg('Display names updated.');
   }
 

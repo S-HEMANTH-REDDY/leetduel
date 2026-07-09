@@ -8,8 +8,15 @@ import { AdminPanel } from './components/AdminPanel';
 import { ReminderBanner } from './components/ReminderBanner';
 import { remoteConfigured } from './lib/storage';
 
+const SYNC_LABEL: Record<string, string> = {
+  idle: 'Synced',
+  syncing: 'Saving…',
+  saved: 'Saved',
+  error: 'Offline — retrying',
+};
+
 function Shell() {
-  const { ready, user, logout, error, refresh } = useApp();
+  const { ready, user, logout, refresh, syncStatus } = useApp();
 
   if (!ready) {
     return (
@@ -30,7 +37,11 @@ function Shell() {
           <span className="muted hide-sm">5 problems/day · miss → you pay outside</span>
         </div>
         <div className="top-actions">
-          <button type="button" className="btn ghost" onClick={() => void refresh()}>
+          <span className={`sync-pill ${syncStatus}`} title="Sync status">
+            <span className="sync-dot" />
+            {SYNC_LABEL[syncStatus] ?? 'Synced'}
+          </span>
+          <button type="button" className="btn ghost" onClick={() => refresh()}>
             Refresh
           </button>
           <span className="who">
@@ -47,7 +58,6 @@ function Shell() {
           Running in local-only mode. Data stays in this browser until a shared backend is configured.
         </div>
       )}
-      {error && <div className="banner error-banner">{error}</div>}
 
       <main className="layout">
         <Leaderboard />

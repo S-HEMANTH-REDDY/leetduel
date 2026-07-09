@@ -26,8 +26,8 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          VITE_CC_ENDPOINT: ${{ secrets.VITE_CC_ENDPOINT }}
-          VITE_CC_ID: ${{ secrets.VITE_CC_ID }}
+          VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
+          VITE_API_ID: ${{ secrets.VITE_API_ID }}
       - name: Prepare Pages artifact
         run: |
           cp dist/index.html dist/404.html

@@ -10,7 +10,7 @@ export function PayTab() {
   const [busy, setBusy] = useState<UserId | null>(null);
 
   const rows = useMemo(() => {
-    const ids: UserId[] = ['hemanth', 'friend'];
+    const ids: UserId[] = ['hemanth', 'abhiram'];
     return ids.map((id) => {
       const tab = computePayTab(state, id);
       return {
@@ -21,33 +21,22 @@ export function PayTab() {
     });
   }, [state]);
 
-  async function onPaid(userId: UserId, name: string) {
+  function onPaid(userId: UserId, name: string) {
     if (!confirm(`${name} just covered the outing bill? This decreases their owe count by 1.`)) {
       return;
     }
     setBusy(userId);
-    setMsg('');
-    try {
-      await markPaid(userId);
-      setMsg(`${name} marked as paid — owe count −1.`);
-    } catch (e) {
-      setMsg(e instanceof Error ? e.message : 'Could not update');
-    } finally {
-      setBusy(null);
-    }
+    markPaid(userId);
+    setMsg(`${name} marked as paid — owe count −1.`);
+    window.setTimeout(() => setBusy(null), 300);
   }
 
-  async function onUndo(userId: UserId, name: string) {
+  function onUndo(userId: UserId, name: string) {
     if (!confirm(`Undo last payment for ${name}?`)) return;
     setBusy(userId);
-    try {
-      await undoPayment(userId);
-      setMsg(`Undid last payment for ${name}.`);
-    } catch (e) {
-      setMsg(e instanceof Error ? e.message : 'Could not undo');
-    } finally {
-      setBusy(null);
-    }
+    undoPayment(userId);
+    setMsg(`Undid last payment for ${name}.`);
+    window.setTimeout(() => setBusy(null), 300);
   }
 
   return (

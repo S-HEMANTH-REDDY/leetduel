@@ -317,6 +317,62 @@ textarea:focus {
   font-size: 0.92rem;
 }
 
+.sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  border: 1px solid var(--line);
+  background: var(--bg-elev);
+  color: var(--muted);
+}
+
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.sync-pill.saved,
+.sync-pill.idle {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+.sync-pill.saved .sync-dot,
+.sync-pill.idle .sync-dot {
+  background: var(--accent);
+}
+
+.sync-pill.syncing {
+  color: var(--accent-2);
+  border-color: color-mix(in srgb, var(--accent-2) 35%, var(--line));
+}
+.sync-pill.syncing .sync-dot {
+  background: var(--accent-2);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.sync-pill.error {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--line));
+}
+.sync-pill.error .sync-dot {
+  background: var(--danger);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
 .banner {
   border-radius: 12px;
   padding: 10px 14px;

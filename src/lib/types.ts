@@ -1,4 +1,4 @@
-export type UserId = 'hemanth' | 'friend';
+export type UserId = 'hemanth' | 'abhiram';
 
 export interface User {
   id: UserId;
@@ -71,8 +71,8 @@ export const USERS: User[] = [
     isAdmin: true,
   },
   {
-    id: 'friend',
-    displayName: 'Friend',
+    id: 'abhiram',
+    displayName: 'Abhiram',
     password: 'duel9pm',
     isAdmin: true,
   },

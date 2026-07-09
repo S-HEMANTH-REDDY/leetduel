@@ -1,20 +1,20 @@
-import type { CompetitionState, UserId } from './types';
+import type { CompetitionState, DailyLog, UserId } from './types';
 
 const LOCAL_KEY = 'leetcode-duel-state';
 const SESSION_KEY = 'leetcode-duel-session';
 
 /**
- * Shared backend: crudcrud.com (CORS-friendly).
- * Site host: GitHub Pages (trusted by Brave).
- * Injected at deploy: VITE_CC_ENDPOINT, VITE_CC_ID
+ * Shared backend: restful-api.dev (keyless, CORS-enabled, persistent).
+ * Site host: GitHub Pages (trusted by browsers).
+ * Injected at deploy time: VITE_API_BASE, VITE_API_ID.
  */
 export const REMOTE = {
-  endpoint: import.meta.env.VITE_CC_ENDPOINT as string | undefined,
-  id: import.meta.env.VITE_CC_ID as string | undefined,
+  base: (import.meta.env.VITE_API_BASE as string | undefined) || 'https://api.restful-api.dev/objects',
+  id: import.meta.env.VITE_API_ID as string | undefined,
 };
 
 export function remoteConfigured(): boolean {
-  return Boolean(REMOTE.endpoint && REMOTE.id);
+  return Boolean(REMOTE.id);
 }
 
 export function emptyState(): CompetitionState {
@@ -24,33 +24,33 @@ export function emptyState(): CompetitionState {
     logs: [],
     displayNames: {
       hemanth: 'Hemanth',
-      friend: 'Friend',
+      abhiram: 'Abhiram',
     },
-    paymentsCleared: { hemanth: 0, friend: 0 },
+    paymentsCleared: { hemanth: 0, abhiram: 0 },
     paymentHistory: [],
   };
 }
 
-export function normalizeState(raw: CompetitionState & { _id?: string }): CompetitionState {
-  const { _id: _ignored, ...rest } = raw as CompetitionState & { _id?: string };
-  void _ignored;
+export function normalizeState(raw: Partial<CompetitionState> | null | undefined): CompetitionState {
+  const base = emptyState();
+  const r = (raw || {}) as CompetitionState;
   return {
-    ...emptyState(),
-    ...rest,
+    version: typeof r.version === 'number' ? r.version : base.version,
+    createdAt: r.createdAt || base.createdAt,
+    logs: Array.isArray(r.logs) ? r.logs : [],
     displayNames: {
-      hemanth: rest.displayNames?.hemanth ?? 'Hemanth',
-      friend: rest.displayNames?.friend ?? 'Friend',
+      hemanth: r.displayNames?.hemanth ?? 'Hemanth',
+      abhiram: r.displayNames?.abhiram ?? 'Abhiram',
     },
-    logs: Array.isArray(rest.logs) ? rest.logs : [],
     paymentsCleared: {
-      hemanth: rest.paymentsCleared?.hemanth ?? 0,
-      friend: rest.paymentsCleared?.friend ?? 0,
+      hemanth: r.paymentsCleared?.hemanth ?? 0,
+      abhiram: r.paymentsCleared?.abhiram ?? 0,
     },
-    paymentHistory: Array.isArray(rest.paymentHistory) ? rest.paymentHistory : [],
+    paymentHistory: Array.isArray(r.paymentHistory) ? r.paymentHistory : [],
   };
 }
 
-function readLocal(): CompetitionState {
+export function readLocal(): CompetitionState {
   try {
     const raw = localStorage.getItem(LOCAL_KEY);
     if (!raw) return emptyState();
@@ -60,74 +60,118 @@ function readLocal(): CompetitionState {
   }
 }
 
-function writeLocal(state: CompetitionState) {
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(state));
+export function writeLocal(state: CompetitionState) {
+  try {
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(state));
+  } catch {
+    /* storage full / private mode — ignore */
+  }
 }
 
-function resourceUrl() {
-  return `${REMOTE.endpoint}/duel/${REMOTE.id}`;
-}
+/**
+ * Conflict-free merge of two states so the two players never clobber
+ * each other. Logs are keyed by user+date and the freshest wins;
+ * payments and history are unioned.
+ */
+export function mergeStates(a: CompetitionState, b: CompetitionState): CompetitionState {
+  const byKey = new Map<string, DailyLog>();
+  for (const log of [...a.logs, ...b.logs]) {
+    if (!log || !log.userId || !log.date) continue;
+    const key = `${log.userId}|${log.date}`;
+    const prev = byKey.get(key);
+    if (!prev || (log.updatedAt || '') >= (prev.updatedAt || '')) {
+      byKey.set(key, log);
+    }
+  }
+  const logs = [...byKey.values()].sort(
+    (x, y) => x.date.localeCompare(y.date) || x.userId.localeCompare(y.userId),
+  );
 
-async function fetchRemote(): Promise<CompetitionState | null> {
-  if (!remoteConfigured()) return null;
-  const res = await fetch(resourceUrl(), {
-    headers: { Accept: 'application/json' },
-    cache: 'no-store',
+  const histById = new Map<string, CompetitionState['paymentHistory'][number]>();
+  for (const p of [...(a.paymentHistory || []), ...(b.paymentHistory || [])]) {
+    if (p && p.id) histById.set(p.id, p);
+  }
+  const paymentHistory = [...histById.values()].sort((x, y) =>
+    (y.paidAt || '').localeCompare(x.paidAt || ''),
+  );
+
+  const paymentsCleared = {
+    hemanth: Math.max(a.paymentsCleared?.hemanth ?? 0, b.paymentsCleared?.hemanth ?? 0),
+    abhiram: Math.max(a.paymentsCleared?.abhiram ?? 0, b.paymentsCleared?.abhiram ?? 0),
+  };
+
+  const createdAt =
+    a.createdAt && b.createdAt ? (a.createdAt < b.createdAt ? a.createdAt : b.createdAt) : a.createdAt || b.createdAt;
+
+  return normalizeState({
+    version: Math.max(a.version || 0, b.version || 0) + 1,
+    createdAt,
+    logs,
+    displayNames: { hemanth: 'Hemanth', abhiram: 'Abhiram' },
+    paymentsCleared,
+    paymentHistory,
   });
-  if (!res.ok) throw new Error(`Failed to load remote state (${res.status})`);
-  const data = await res.json();
+}
+
+/** Signature of the meaningful content (ignores version bumps). */
+export function signature(state: CompetitionState): string {
+  const logs = [...state.logs]
+    .sort((x, y) => x.date.localeCompare(y.date) || x.userId.localeCompare(y.userId))
+    .map((l) => `${l.userId}|${l.date}|${l.easy}|${l.medium}|${l.hard}|${l.notes}`);
+  const hist = state.paymentHistory.map((p) => p.id).sort();
+  return JSON.stringify({
+    logs,
+    pc: state.paymentsCleared,
+    hist,
+    dn: state.displayNames,
+  });
+}
+
+const REQUEST_TIMEOUT_MS = 8000;
+
+async function withTimeout<T>(p: Promise<T>): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await p;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function fetchRemote(): Promise<CompetitionState | null> {
+  if (!remoteConfigured()) return null;
+  const res = await withTimeout(
+    fetch(`${REMOTE.base}/${REMOTE.id}`, {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    }),
+  );
+  if (!res.ok) throw new Error(`load ${res.status}`);
+  const obj = await res.json();
+  const data = obj && typeof obj === 'object' && 'data' in obj ? obj.data : obj;
   return normalizeState(data as CompetitionState);
 }
 
-async function saveRemote(state: CompetitionState): Promise<void> {
+export async function saveRemote(state: CompetitionState): Promise<void> {
   if (!remoteConfigured()) return;
-  // crudcrud PUT body must NOT include _id
-  const res = await fetch(resourceUrl(), {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify(state),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`Failed to save remote state (${res.status}): ${text.slice(0, 200)}`);
-  }
-}
-
-export async function loadState(): Promise<CompetitionState> {
-  if (remoteConfigured()) {
-    try {
-      const remote = await fetchRemote();
-      if (remote) {
-        writeLocal(remote);
-        return remote;
-      }
-    } catch (err) {
-      console.warn('Remote load failed, using local cache', err);
-    }
-  }
-  return readLocal();
-}
-
-export async function saveState(state: CompetitionState): Promise<CompetitionState> {
-  const next = { ...state, version: state.version + 1 };
-  writeLocal(next);
-  if (remoteConfigured()) {
-    await saveRemote(next);
-  }
-  return next;
+  const res = await withTimeout(
+    fetch(`${REMOTE.base}/${REMOTE.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'LeetDuel', data: state }),
+    }),
+  );
+  if (!res.ok) throw new Error(`save ${res.status}`);
 }
 
 export function getSession(): UserId | null {
   const v = sessionStorage.getItem(SESSION_KEY);
-  if (v === 'hemanth' || v === 'friend') return v;
+  if (v === 'hemanth' || v === 'abhiram') return v;
   return null;
 }
 
 export function setSession(userId: UserId | null) {
   if (userId) sessionStorage.setItem(SESSION_KEY, userId);
   else sessionStorage.removeItem(SESSION_KEY);
-}
-
-export async function resetCompetition(): Promise<CompetitionState> {
-  return saveState(emptyState());
 }

@@ -181,7 +181,7 @@ export function computeUserStats(
 }
 
 export function computeLeaderboard(state: CompetitionState, asOf = new Date()) {
-  const ids: UserId[] = ['hemanth', 'friend'];
+  const ids: UserId[] = ['hemanth', 'abhiram'];
   const stats = ids.map((id) => computeUserStats(state, id, asOf));
   stats.sort((a, b) => {
     if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;

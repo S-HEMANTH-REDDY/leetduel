@@ -70,7 +70,7 @@ export function StatsDashboard() {
           <p className="muted">Calendar, heatmap, trends, and achievements</p>
         </div>
         <div className="seg">
-          {(['hemanth', 'friend'] as UserId[]).map((id) => (
+          {(['hemanth', 'abhiram'] as UserId[]).map((id) => (
             <button
               key={id}
               type="button"
