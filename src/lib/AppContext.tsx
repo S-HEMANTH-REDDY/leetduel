@@ -70,6 +70,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const syncingRef = useRef(false);
   const pendingRef = useRef(false);
   const debounceRef = useRef<number | null>(null);
+  const lastPullRef = useRef(0);
+  const failCountRef = useRef(0);
+
+  // Free keyless backends cap daily requests, so pull sparingly.
+  const MIN_PULL_INTERVAL_MS = 45_000;
+  const POLL_INTERVAL_MS = 5 * 60_000;
 
   const applyState = useCallback((next: CompetitionState) => {
     stateRef.current = next;
@@ -83,6 +89,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dirtyRef.current = false;
       return;
     }
+    // Skip pull-only syncs that happen too soon; still allow pushes.
+    if (!dirtyRef.current && Date.now() - lastPullRef.current < MIN_PULL_INTERVAL_MS) {
+      return;
+    }
     if (syncingRef.current) {
       pendingRef.current = true;
       return;
@@ -91,8 +101,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSyncStatus('syncing');
     try {
       let remote: CompetitionState | null = null;
+      let fetchOk = false;
       try {
         remote = await fetchRemote();
+        fetchOk = true;
+        lastPullRef.current = Date.now();
       } catch {
         remote = null;
       }
@@ -104,17 +117,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
         applyState(merged);
       }
 
-      const needPush = remoteConfigured() && (!remote || signature(merged) !== signature(remote));
+      const needPush = !remote || signature(merged) !== signature(remote);
+      let pushOk = true;
       if (needPush) {
-        await saveRemote(merged);
+        try {
+          await saveRemote(merged);
+        } catch {
+          pushOk = false;
+        }
       }
 
-      dirtyRef.current = false;
-      setSyncStatus('saved');
-      setOnline(true);
+      if (fetchOk && pushOk) {
+        dirtyRef.current = false;
+        failCountRef.current = 0;
+        setSyncStatus('saved');
+        setOnline(true);
+      } else {
+        // Backend unreachable/capped. Data is safe locally; retry later quietly.
+        if (needPush && !pushOk) dirtyRef.current = true;
+        failCountRef.current += 1;
+        setSyncStatus(failCountRef.current >= 2 ? 'error' : 'saved');
+        setOnline(false);
+      }
     } catch {
-      dirtyRef.current = true;
-      setSyncStatus('error');
+      failCountRef.current += 1;
+      setSyncStatus(failCountRef.current >= 2 ? 'error' : 'saved');
       setOnline(false);
     } finally {
       syncingRef.current = false;
@@ -160,25 +187,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })();
   }, [runSync]);
 
-  // Poll for the other player's updates
+  // Poll gently, and only while the tab is actually visible.
   useEffect(() => {
-    const id = window.setInterval(() => void runSync(), 8000);
+    const id = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void runSync();
+    }, POLL_INTERVAL_MS);
     return () => window.clearInterval(id);
   }, [runSync]);
 
-  // Sync on focus / reconnect
+  // Sync on focus / tab becoming visible / reconnect
   useEffect(() => {
     const onFocus = () => void runSync();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void runSync();
+    };
     const onOnline = () => {
       setOnline(true);
       void runSync();
     };
     const onOffline = () => setOnline(false);
     window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
     return () => {
       window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
     };
@@ -197,7 +231,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  const refresh = useCallback(() => void runSync(), [runSync]);
+  const refresh = useCallback(() => {
+    lastPullRef.current = 0; // force an immediate pull
+    void runSync();
+  }, [runSync]);
 
   const commit = useCallback(
     (mutator: (cur: CompetitionState) => CompetitionState) => {

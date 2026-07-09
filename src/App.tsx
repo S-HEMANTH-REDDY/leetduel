@@ -10,9 +10,9 @@ import { remoteConfigured } from './lib/storage';
 
 const SYNC_LABEL: Record<string, string> = {
   idle: 'Synced',
-  syncing: 'Saving…',
-  saved: 'Saved',
-  error: 'Offline — retrying',
+  syncing: 'Syncing…',
+  saved: 'Synced',
+  error: 'Saved on this device',
 };
 
 function Shell() {
