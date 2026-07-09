@@ -7,6 +7,16 @@ export interface User {
   isAdmin: boolean;
 }
 
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
+/** A single solved problem, logged as proof. */
+export interface Problem {
+  id: string;
+  number: string; // LeetCode problem number, e.g. "1"
+  title: string; // e.g. "Two Sum"
+  difficulty: Difficulty;
+}
+
 export interface DailyLog {
   id: string;
   userId: UserId;
@@ -14,6 +24,8 @@ export interface DailyLog {
   easy: number;
   medium: number;
   hard: number;
+  /** Proof list — required going forward; may be empty for legacy logs. */
+  problems: Problem[];
   notes: string;
   createdAt: string;
   updatedAt: string;

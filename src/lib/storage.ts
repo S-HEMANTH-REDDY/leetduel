@@ -1,4 +1,23 @@
-import type { CompetitionState, DailyLog, UserId } from './types';
+import type { CompetitionState, DailyLog, Problem, UserId } from './types';
+
+function normalizeLog(l: DailyLog): DailyLog {
+  const problems: Problem[] = Array.isArray(l.problems)
+    ? l.problems.map((p) => ({
+        id: p.id,
+        number: String(p.number ?? ''),
+        title: String(p.title ?? ''),
+        difficulty: p.difficulty === 'easy' || p.difficulty === 'hard' ? p.difficulty : 'medium',
+      }))
+    : [];
+  return {
+    ...l,
+    easy: l.easy ?? 0,
+    medium: l.medium ?? 0,
+    hard: l.hard ?? 0,
+    problems,
+    notes: l.notes ?? '',
+  };
+}
 
 const LOCAL_KEY = 'leetcode-duel-state';
 const SESSION_KEY = 'leetcode-duel-session';
@@ -37,7 +56,7 @@ export function normalizeState(raw: Partial<CompetitionState> | null | undefined
   return {
     version: typeof r.version === 'number' ? r.version : base.version,
     createdAt: r.createdAt || base.createdAt,
-    logs: Array.isArray(r.logs) ? r.logs : [],
+    logs: Array.isArray(r.logs) ? r.logs.map(normalizeLog) : [],
     displayNames: {
       hemanth: r.displayNames?.hemanth ?? 'Hemanth',
       abhiram: r.displayNames?.abhiram ?? 'Abhiram',

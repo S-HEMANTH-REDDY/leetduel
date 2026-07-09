@@ -86,7 +86,7 @@ export function AdminPanel() {
         </div>
       </div>
 
-      <h3>Your submissions</h3>
+      <h3>Your submissions &amp; proof</h3>
       <div className="table-wrap">
         <table>
           <thead>
@@ -95,7 +95,7 @@ export function AdminPanel() {
               <th>E / M / H</th>
               <th>Pts</th>
               <th>Goal</th>
-              <th>Notes</th>
+              <th>Problems solved (proof)</th>
               <th />
             </tr>
           </thead>
@@ -115,7 +115,19 @@ export function AdminPanel() {
                 </td>
                 <td>{calcPoints(log.easy, log.medium, log.hard)}</td>
                 <td>{goalMet(log) ? '✅' : '❌'}</td>
-                <td className="notes-cell">{log.notes || '—'}</td>
+                <td className="proof-cell">
+                  {log.problems && log.problems.length > 0 ? (
+                    <div className="proof-tags">
+                      {log.problems.map((p) => (
+                        <span key={p.id} className={`proof-tag ${p.difficulty}`}>
+                          #{p.number} {p.title}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="muted">{log.notes || 'no proof listed'}</span>
+                  )}
+                </td>
                 <td>
                   <button type="button" className="btn danger sm" onClick={() => void onDelete(log.id)}>
                     Delete
@@ -129,8 +141,8 @@ export function AdminPanel() {
 
       {todayLog && (
         <p className="muted">
-          Tip: change counts in Tonight’s log and hit Update — duplicate same-day submits are edits, not
-          new rows. ({calcProblems(todayLog.easy, todayLog.medium, todayLog.hard)} problems today)
+          Tip: edit today’s log and hit Update — same-day submits are edits, not new rows. (
+          {calcProblems(todayLog.easy, todayLog.medium, todayLog.hard)} problems today)
         </p>
       )}
 

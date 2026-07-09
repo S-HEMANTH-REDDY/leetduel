@@ -8,7 +8,14 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { USERS, type CompetitionState, type DailyLog, type User, type UserId } from './types';
+import {
+  USERS,
+  type CompetitionState,
+  type DailyLog,
+  type Problem,
+  type User,
+  type UserId,
+} from './types';
 import {
   emptyState,
   fetchRemote,
@@ -22,14 +29,12 @@ import {
   signature,
   writeLocal,
 } from './storage';
-import { computePayTab, todayKey } from './scoring';
+import { computePayTab, countsFromProblems, todayKey } from './scoring';
 
 export type SyncStatus = 'idle' | 'syncing' | 'saved' | 'error';
 
 interface UpsertInput {
-  easy: number;
-  medium: number;
-  hard: number;
+  problems: Problem[];
   notes: string;
   date?: string;
 }
@@ -214,9 +219,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const cur = stateRef.current;
       const existing = cur.logs.find((l) => l.userId === user.id && l.date === date);
       const now = new Date().toISOString();
-      const problems = input.easy + input.medium + input.hard;
+      const { easy, medium, hard } = countsFromProblems(input.problems);
+      const total = easy + medium + hard;
       const goalJustMet =
-        problems >= 5 && (!existing || existing.easy + existing.medium + existing.hard < 5);
+        total >= 5 && (!existing || existing.easy + existing.medium + existing.hard < 5);
 
       let log: DailyLog;
       let isNew = false;
@@ -225,9 +231,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (existing) {
         log = {
           ...existing,
-          easy: input.easy,
-          medium: input.medium,
-          hard: input.hard,
+          easy,
+          medium,
+          hard,
+          problems: input.problems,
           notes: input.notes,
           updatedAt: now,
         };
@@ -238,9 +245,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           id: `${user.id}-${date}-${Date.now()}`,
           userId: user.id,
           date,
-          easy: input.easy,
-          medium: input.medium,
-          hard: input.hard,
+          easy,
+          medium,
+          hard,
+          problems: input.problems,
           notes: input.notes,
           createdAt: now,
           updatedAt: now,

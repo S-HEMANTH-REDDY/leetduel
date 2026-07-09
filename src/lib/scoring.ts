@@ -23,6 +23,34 @@ export function todayKey(date = new Date()): string {
   return format(date, 'yyyy-MM-dd');
 }
 
+/** Milliseconds remaining until 23:59:59.999 tonight (local time). */
+export function msUntilDeadline(now = new Date()): number {
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+  return end.getTime() - now.getTime();
+}
+
+export function formatCountdown(ms: number): string {
+  if (ms <= 0) return '00:00:00';
+  const total = Math.floor(ms / 1000);
+  const h = String(Math.floor(total / 3600)).padStart(2, '0');
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
+  const s = String(total % 60).padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
+
+export function countsFromProblems(problems: { difficulty: 'easy' | 'medium' | 'hard' }[]) {
+  let easy = 0;
+  let medium = 0;
+  let hard = 0;
+  for (const p of problems) {
+    if (p.difficulty === 'easy') easy += 1;
+    else if (p.difficulty === 'hard') hard += 1;
+    else medium += 1;
+  }
+  return { easy, medium, hard };
+}
+
 export function calcPoints(easy: number, medium: number, hard: number): number {
   return easy * POINTS.easy + medium * POINTS.medium + hard * POINTS.hard;
 }
@@ -361,13 +389,16 @@ export function periodSummary(
 }
 
 export function exportCsv(state: CompetitionState): string {
-  const header = 'date,user,easy,medium,hard,points,problems,goal_met,notes';
+  const header = 'date,user,easy,medium,hard,points,problems,goal_met,proof,notes';
+  const quote = (s: string) => `"${(s || '').replace(/"/g, '""')}"`;
   const rows = [...state.logs]
     .sort((a, b) => a.date.localeCompare(b.date) || a.userId.localeCompare(b.userId))
     .map((l) => {
       const points = calcPoints(l.easy, l.medium, l.hard);
       const problems = calcProblems(l.easy, l.medium, l.hard);
-      const notes = `"${(l.notes || '').replace(/"/g, '""')}"`;
+      const proof = (l.problems || [])
+        .map((p) => `#${p.number} ${p.title} (${p.difficulty})`)
+        .join('; ');
       return [
         l.date,
         state.displayNames[l.userId],
@@ -377,7 +408,8 @@ export function exportCsv(state: CompetitionState): string {
         points,
         problems,
         goalMet(l) ? 'yes' : 'no',
-        notes,
+        quote(proof),
+        quote(l.notes || ''),
       ].join(',');
     });
   return [header, ...rows].join('\n');
