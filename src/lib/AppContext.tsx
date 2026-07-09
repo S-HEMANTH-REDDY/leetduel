@@ -256,7 +256,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         nextLogs = [...cur.logs, log];
       }
 
-      commit((c) => ({ ...c, logs: nextLogs }));
+      commit((c) => {
+        const tombstones = { ...c.tombstones };
+        delete tombstones[`${user.id}|${date}`];
+        return { ...c, logs: nextLogs, tombstones };
+      });
       return { log, isNew, goalJustMet };
     },
     [user, commit],
@@ -264,7 +268,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const deleteLog = useCallback(
     (logId: string) => {
-      commit((c) => ({ ...c, logs: c.logs.filter((l) => l.id !== logId) }));
+      commit((c) => {
+        const target = c.logs.find((l) => l.id === logId);
+        const tombstones = { ...c.tombstones };
+        if (target) tombstones[`${target.userId}|${target.date}`] = new Date().toISOString();
+        return {
+          ...c,
+          logs: c.logs.filter((l) => l.id !== logId),
+          tombstones,
+        };
+      });
     },
     [commit],
   );

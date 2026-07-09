@@ -37,9 +37,12 @@ export function remoteConfigured(): boolean {
 }
 
 export function emptyState(): CompetitionState {
+  const now = new Date().toISOString();
   return {
     version: 1,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
+    resetAt: now,
+    tombstones: {},
     logs: [],
     displayNames: {
       hemanth: 'Hemanth',
@@ -53,9 +56,14 @@ export function emptyState(): CompetitionState {
 export function normalizeState(raw: Partial<CompetitionState> | null | undefined): CompetitionState {
   const base = emptyState();
   const r = (raw || {}) as CompetitionState;
+  const createdAt = r.createdAt || base.createdAt;
   return {
     version: typeof r.version === 'number' ? r.version : base.version,
-    createdAt: r.createdAt || base.createdAt,
+    createdAt,
+    // Legacy states had no resetAt; fall back to createdAt so nothing is dropped.
+    resetAt: r.resetAt || createdAt,
+    tombstones:
+      r.tombstones && typeof r.tombstones === 'object' ? { ...r.tombstones } : {},
     logs: Array.isArray(r.logs) ? r.logs.map(normalizeLog) : [],
     displayNames: {
       hemanth: r.displayNames?.hemanth ?? 'Hemanth',
@@ -93,6 +101,17 @@ export function writeLocal(state: CompetitionState) {
  * payments and history are unioned.
  */
 export function mergeStates(a: CompetitionState, b: CompetitionState): CompetitionState {
+  // The most recent reset wins; anything older than it is discarded.
+  const resetAt = (a.resetAt || '') > (b.resetAt || '') ? a.resetAt : b.resetAt;
+
+  // Union tombstones, keeping the latest deletion time per day-key.
+  const tombstones: Record<string, string> = {};
+  for (const src of [a.tombstones || {}, b.tombstones || {}]) {
+    for (const [key, at] of Object.entries(src)) {
+      if (!tombstones[key] || at > tombstones[key]) tombstones[key] = at;
+    }
+  }
+
   const byKey = new Map<string, DailyLog>();
   for (const log of [...a.logs, ...b.logs]) {
     if (!log || !log.userId || !log.date) continue;
@@ -102,9 +121,21 @@ export function mergeStates(a: CompetitionState, b: CompetitionState): Competiti
       byKey.set(key, log);
     }
   }
-  const logs = [...byKey.values()].sort(
-    (x, y) => x.date.localeCompare(y.date) || x.userId.localeCompare(y.userId),
-  );
+  const logs = [...byKey.values()]
+    .filter((log) => {
+      // Drop logs from before the last reset.
+      if ((log.updatedAt || log.createdAt || '') < (resetAt || '')) return false;
+      // Drop logs deleted more recently than they were last edited.
+      const del = tombstones[`${log.userId}|${log.date}`];
+      if (del && del >= (log.updatedAt || '')) return false;
+      return true;
+    })
+    .sort((x, y) => x.date.localeCompare(y.date) || x.userId.localeCompare(y.userId));
+
+  // Forget tombstones that predate the reset — they're irrelevant now.
+  for (const key of Object.keys(tombstones)) {
+    if (tombstones[key] < (resetAt || '')) delete tombstones[key];
+  }
 
   const histById = new Map<string, CompetitionState['paymentHistory'][number]>();
   for (const p of [...(a.paymentHistory || []), ...(b.paymentHistory || [])]) {
@@ -125,6 +156,8 @@ export function mergeStates(a: CompetitionState, b: CompetitionState): Competiti
   return normalizeState({
     version: Math.max(a.version || 0, b.version || 0) + 1,
     createdAt,
+    resetAt,
+    tombstones,
     logs,
     displayNames: { hemanth: 'Hemanth', abhiram: 'Abhiram' },
     paymentsCleared,
@@ -138,11 +171,16 @@ export function signature(state: CompetitionState): string {
     .sort((x, y) => x.date.localeCompare(y.date) || x.userId.localeCompare(y.userId))
     .map((l) => `${l.userId}|${l.date}|${l.easy}|${l.medium}|${l.hard}|${l.notes}`);
   const hist = state.paymentHistory.map((p) => p.id).sort();
+  const tomb = Object.entries(state.tombstones || {})
+    .map(([k, v]) => `${k}=${v}`)
+    .sort();
   return JSON.stringify({
     logs,
     pc: state.paymentsCleared,
     hist,
     dn: state.displayNames,
+    resetAt: state.resetAt,
+    tomb,
   });
 }
 

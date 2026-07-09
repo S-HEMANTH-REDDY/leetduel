@@ -34,6 +34,10 @@ export interface DailyLog {
 export interface CompetitionState {
   version: number;
   createdAt: string;
+  /** Any log older than this instant is dropped on merge (used by Reset). */
+  resetAt: string;
+  /** Deleted day markers: key "userId|date" -> ISO deletedAt. */
+  tombstones: Record<string, string>;
   logs: DailyLog[];
   displayNames: Record<UserId, string>;
   /** How many times each person has already paid the outing bill. */
