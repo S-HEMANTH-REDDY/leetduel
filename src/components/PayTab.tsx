@@ -5,7 +5,7 @@ import type { UserId } from '../lib/types';
 import { DAILY_GOAL } from '../lib/types';
 
 export function PayTab() {
-  const { state, markPaid, undoPayment } = useApp();
+  const { user, state, markPaid, undoPayment } = useApp();
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState<UserId | null>(null);
 
@@ -21,21 +21,21 @@ export function PayTab() {
     });
   }, [state]);
 
-  function onPaid(userId: UserId, name: string) {
-    if (!confirm(`${name} just covered the outing bill? This decreases their owe count by 1.`)) {
+  function onPaid(userId: UserId) {
+    if (!confirm('Confirm you covered the outing bill? This lowers your owe count by 1.')) {
       return;
     }
     setBusy(userId);
     markPaid(userId);
-    setMsg(`${name} marked as paid — owe count −1.`);
+    setMsg('Marked as paid — your owe count dropped by 1.');
     window.setTimeout(() => setBusy(null), 300);
   }
 
-  function onUndo(userId: UserId, name: string) {
-    if (!confirm(`Undo last payment for ${name}?`)) return;
+  function onUndo(userId: UserId) {
+    if (!confirm('Undo your last payment?')) return;
     setBusy(userId);
     undoPayment(userId);
-    setMsg(`Undid last payment for ${name}.`);
+    setMsg('Undid your last payment.');
     window.setTimeout(() => setBusy(null), 300);
   }
 
@@ -45,9 +45,9 @@ export function PayTab() {
         <div>
           <h2>Who pays outside?</h2>
           <p className="muted">
-            Miss a day under {DAILY_GOAL} problems → you owe the next outing bill. Any mix counts (2
-            Easy + 3 Medium, or 2 Easy + 2 Medium + 1 Hard, etc.). Tap <strong>They paid</strong> when
-            someone covers the bill — their owe count drops by 1.
+            Any day under {DAILY_GOAL} problems (any Easy/Medium/Hard mix) — or not logged before
+            11:59:59 PM — means you owe the next outing bill. You can only clear{' '}
+            <strong>your own</strong> tab: tap <strong>I paid</strong> after you cover a bill.
           </p>
         </div>
       </div>
@@ -77,24 +77,28 @@ export function PayTab() {
                   </span>
                 </td>
                 <td>
-                  <div className="pay-actions">
-                    <button
-                      type="button"
-                      className="btn primary sm"
-                      disabled={row.owesOutings <= 0 || busy === row.userId}
-                      onClick={() => void onPaid(row.userId, row.name)}
-                    >
-                      {busy === row.userId ? '…' : 'They paid'}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn ghost sm"
-                      disabled={row.timesPaid <= 0 || busy === row.userId}
-                      onClick={() => void onUndo(row.userId, row.name)}
-                    >
-                      Undo
-                    </button>
-                  </div>
+                  {user?.id === row.userId ? (
+                    <div className="pay-actions">
+                      <button
+                        type="button"
+                        className="btn primary sm"
+                        disabled={row.owesOutings <= 0 || busy === row.userId}
+                        onClick={() => void onPaid(row.userId)}
+                      >
+                        {busy === row.userId ? '…' : 'I paid'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn ghost sm"
+                        disabled={row.timesPaid <= 0 || busy === row.userId}
+                        onClick={() => void onUndo(row.userId)}
+                      >
+                        Undo
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="muted">their tab</span>
+                  )}
                 </td>
               </tr>
             ))}

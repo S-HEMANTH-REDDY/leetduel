@@ -19,8 +19,8 @@ export function LoginPage() {
         <p className="brand-mark">LeetDuel</p>
         <h1>Who’s logging in?</h1>
         <p className="muted">
-          Local sign-in only — tap your name. No Google, no password. Hit 5 problems/day; miss and you
-          owe the outing bill.
+          Tap your name to sign in. Log 5+ problems every day with proof (LeetCode number + title)
+          before 11:59 PM — miss it and you owe the next outing bill.
         </p>
 
         <div className="player-pick">
@@ -37,8 +37,8 @@ export function LoginPage() {
 
         {error && <p className="error">{error}</p>}
         <p className="muted login-note">
-          This only stores who you are on this device. Anyone with the link can pick either name — that’s
-          intentional for a 2-person duel.
+          You can only edit your own logs and pay tab. Past days lock at midnight so nobody can
+          backfill a missed day.
         </p>
       </div>
     </div>

@@ -36,7 +36,6 @@ export type SyncStatus = 'idle' | 'syncing' | 'saved' | 'error';
 interface UpsertInput {
   problems: Problem[];
   notes: string;
-  date?: string;
 }
 
 interface AppContextValue {
@@ -252,10 +251,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const upsertLog = useCallback(
     async (input: UpsertInput) => {
       if (!user) throw new Error('Not logged in');
-      const date = input.date ?? todayKey();
+      // Integrity: you can only ever log for the current day (no backdating).
+      const date = todayKey();
       const cur = stateRef.current;
       const existing = cur.logs.find((l) => l.userId === user.id && l.date === date);
       const now = new Date().toISOString();
+
+      // Anti-padding: reject duplicate LeetCode numbers in the same submission.
+      const seen = new Set<string>();
+      for (const p of input.problems) {
+        const n = p.number.trim();
+        if (!n) continue;
+        if (seen.has(n)) throw new Error(`Problem #${n} is listed twice — each proof must be unique.`);
+        seen.add(n);
+      }
+
       const { easy, medium, hard } = countsFromProblems(input.problems);
       const total = easy + medium + hard;
       const goalJustMet =
@@ -305,10 +315,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const deleteLog = useCallback(
     (logId: string) => {
+      if (!user) return;
+      const target = stateRef.current.logs.find((l) => l.id === logId);
+      if (!target) return;
+      // Integrity: only your own log, and only for the current (still-open) day.
+      if (target.userId !== user.id) return;
+      if (target.date !== todayKey()) return;
       commit((c) => {
-        const target = c.logs.find((l) => l.id === logId);
         const tombstones = { ...c.tombstones };
-        if (target) tombstones[`${target.userId}|${target.date}`] = new Date().toISOString();
+        tombstones[`${target.userId}|${target.date}`] = new Date().toISOString();
         return {
           ...c,
           logs: c.logs.filter((l) => l.id !== logId),
@@ -316,7 +331,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         };
       });
     },
-    [commit],
+    [user, commit],
   );
 
   const resetAll = useCallback(() => {
@@ -327,16 +342,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const updateDisplayName = useCallback(
     (userId: UserId, name: string) => {
+      if (!user || userId !== user.id) return; // you can only rename yourself
       commit((c) => ({
         ...c,
         displayNames: { ...c.displayNames, [userId]: name.trim() || c.displayNames[userId] },
       }));
     },
-    [commit],
+    [user, commit],
   );
 
   const markPaid = useCallback(
     (userId: UserId) => {
+      if (!user || userId !== user.id) return; // you can only clear your own tab
       const tab = computePayTab(stateRef.current, userId);
       if (tab.owesOutings <= 0) return;
       commit((c) => ({
@@ -351,11 +368,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ].slice(0, 100),
       }));
     },
-    [commit],
+    [user, commit],
   );
 
   const undoPayment = useCallback(
     (userId: UserId) => {
+      if (!user || userId !== user.id) return; // you can only adjust your own tab
       const cleared = stateRef.current.paymentsCleared[userId] ?? 0;
       if (cleared <= 0) return;
       commit((c) => {
@@ -369,7 +387,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         };
       });
     },
-    [commit],
+    [user, commit],
   );
 
   const value = useMemo(

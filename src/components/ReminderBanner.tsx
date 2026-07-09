@@ -19,7 +19,7 @@ export function ReminderBanner() {
         if (sessionStorage.getItem(sentKey)) return;
         if (Notification.permission === 'granted') {
           new Notification('LeetDuel reminder', {
-            body: '9 PM check-in — log your LeetCode solves and keep the streak alive.',
+            body: 'Log your 5 problems before 11:59 PM — or you owe the next outing bill.',
             icon: '/favicon.svg',
           });
           sessionStorage.setItem(sentKey, '1');
@@ -53,11 +53,11 @@ export function ReminderBanner() {
   return (
     <div className="reminder">
       <div>
-        <strong>9 PM reminder</strong>
+        <strong>Daily 9 PM nudge</strong>
         <p className="muted">
           {enabled && permission === 'granted'
-            ? 'On — we’ll nudge you around 9:00 PM while this tab is open.'
-            : 'Optional browser notification when this tab is open.'}
+            ? 'On — we’ll remind you at 9 PM to log before the 11:59 PM deadline (while this tab is open).'
+            : 'Optional browser reminder before the nightly deadline (works while this tab is open).'}
         </p>
       </div>
       {enabled && permission === 'granted' ? (

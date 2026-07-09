@@ -69,8 +69,8 @@ function Shell() {
       </main>
 
       <footer className="footer muted">
-        Goal: 5+ problems/day (any Easy/Medium/Hard mix) · Miss a day → owe the outing bill · Tap
-        “They paid” to clear one
+        Goal: 5+ problems/day (any Easy/Medium/Hard mix), logged with proof before 11:59 PM · Miss a
+        day → owe the next outing bill · Past days are locked to keep it fair
       </footer>
     </div>
   );

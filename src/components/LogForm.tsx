@@ -90,6 +90,12 @@ export function LogForm({ onGoalMet }: { onGoalMet?: () => void }) {
       setMessage('Each problem needs both a LeetCode number and a title (proof).');
       return;
     }
+    const numbers = cleaned.map((r) => r.number);
+    const dupe = numbers.find((n, i) => numbers.indexOf(n) !== i);
+    if (dupe) {
+      setMessage(`Problem #${dupe} is listed twice — each proof must be a different problem.`);
+      return;
+    }
 
     setSaving(true);
     setMessage('');

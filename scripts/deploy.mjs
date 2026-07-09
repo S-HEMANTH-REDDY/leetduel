@@ -48,12 +48,21 @@ const emptyState = () => ({
 
 async function ensureApiObject(meta) {
   if (meta?.apiId) {
-    const check = await fetch(`${API_BASE}/${meta.apiId}`);
-    if (check.ok) {
-      console.log(`→ Reusing shared state object ${meta.apiId}`);
+    // Reuse the existing object unless it is *definitively* gone (404).
+    // Rate-limit (405/429) or transient errors must NOT trigger a recreate,
+    // otherwise a deploy would silently wipe both players' shared data.
+    let status = 0;
+    try {
+      const check = await fetch(`${API_BASE}/${meta.apiId}`);
+      status = check.status;
+    } catch {
+      status = 0; // network error — assume it still exists
+    }
+    if (status !== 404) {
+      console.log(`→ Reusing shared state object ${meta.apiId} (verify status ${status || 'n/a'})`);
       return meta.apiId;
     }
-    console.log('→ Previous state object missing; creating a new one…');
+    console.log('→ Previous state object is gone (404); creating a new one…');
   }
   console.log('→ Creating shared state object…');
   const res = await fetch(API_BASE, {

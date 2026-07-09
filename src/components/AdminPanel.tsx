@@ -5,9 +5,10 @@ import { calcPoints, calcProblems, exportCsv, goalMet, todayKey } from '../lib/s
 export function AdminPanel() {
   const { user, state, deleteLog, resetAll, updateDisplayName } = useApp();
   const [msg, setMsg] = useState('');
-  const [nameA, setNameA] = useState(state.displayNames.hemanth);
-  const [nameB, setNameB] = useState(state.displayNames.abhiram);
+  const [myName, setMyName] = useState(user ? state.displayNames[user.id] : '');
+  const [resetText, setResetText] = useState('');
 
+  const today = todayKey();
   const myLogs = useMemo(
     () =>
       [...state.logs]
@@ -16,26 +17,31 @@ export function AdminPanel() {
     [state.logs, user?.id],
   );
 
-  const todayLog = myLogs.find((l) => l.date === todayKey());
+  const todayLog = myLogs.find((l) => l.date === today);
 
-  if (!user?.isAdmin) return null;
+  if (!user) return null;
 
   function onReset() {
-    if (!confirm('Reset the entire competition? This deletes all logs for both players.')) return;
+    if (resetText.trim().toUpperCase() !== 'RESET') {
+      setMsg('Type RESET to confirm — this wipes all logs and pay tabs for BOTH players.');
+      return;
+    }
+    if (!confirm('Start a brand-new competition? All logs, streaks, and pay tabs are erased for both players. Your friend will see this.')) return;
     resetAll();
-    setMsg('Competition reset.');
+    setResetText('');
+    setMsg('Competition reset. Fresh start for both players.');
   }
 
   function onDelete(id: string) {
-    if (!confirm('Delete this submission?')) return;
+    if (!confirm('Delete today’s submission? (Only today’s log can be changed.)')) return;
     deleteLog(id);
-    setMsg('Submission deleted.');
+    setMsg('Today’s submission deleted.');
   }
 
-  function onSaveNames() {
-    updateDisplayName('hemanth', nameA);
-    updateDisplayName('abhiram', nameB);
-    setMsg('Display names updated.');
+  function onSaveName() {
+    if (!user) return;
+    updateDisplayName(user.id, myName);
+    setMsg('Your display name was updated.');
   }
 
   function downloadCsv() {
@@ -53,8 +59,8 @@ export function AdminPanel() {
     <section className="panel admin">
       <div className="panel-head">
         <div>
-          <h2>Admin</h2>
-          <p className="muted">Edit, delete, export, or reset</p>
+          <h2>My settings</h2>
+          <p className="muted">You can only manage your own name and today’s log.</p>
         </div>
         <button type="button" className="btn ghost" onClick={downloadCsv}>
           Export CSV
@@ -63,26 +69,41 @@ export function AdminPanel() {
 
       <div className="admin-grid">
         <div>
-          <h3>Display names</h3>
+          <h3>Your display name</h3>
           <div className="name-edit">
-            <input value={nameA} onChange={(e) => setNameA(e.target.value)} placeholder="Player 1" />
-            <input value={nameB} onChange={(e) => setNameB(e.target.value)} placeholder="Player 2" />
-            <button type="button" className="btn" onClick={() => void onSaveNames()}>
-              Save names
+            <input
+              value={myName}
+              onChange={(e) => setMyName(e.target.value)}
+              placeholder="Your name"
+              maxLength={24}
+            />
+            <button type="button" className="btn" onClick={() => void onSaveName()}>
+              Save
             </button>
           </div>
         </div>
 
         <div>
           <h3>Danger zone</h3>
-          <button type="button" className="btn danger" onClick={() => void onReset()}>
-            Reset competition
-          </button>
-          {todayLog && (
-            <p className="muted" style={{ marginTop: 8 }}>
-              Today’s log can also be edited from the log form above.
-            </p>
-          )}
+          <p className="muted" style={{ marginBottom: 8 }}>
+            Reset erases <strong>everything for both players</strong> (logs, streaks, pay tabs) and
+            starts a new competition. Type <code>RESET</code> to enable.
+          </p>
+          <div className="name-edit">
+            <input
+              value={resetText}
+              onChange={(e) => setResetText(e.target.value)}
+              placeholder="Type RESET"
+            />
+            <button
+              type="button"
+              className="btn danger"
+              disabled={resetText.trim().toUpperCase() !== 'RESET'}
+              onClick={() => void onReset()}
+            >
+              Reset competition
+            </button>
+          </div>
         </div>
       </div>
 
@@ -129,9 +150,15 @@ export function AdminPanel() {
                   )}
                 </td>
                 <td>
-                  <button type="button" className="btn danger sm" onClick={() => void onDelete(log.id)}>
-                    Delete
-                  </button>
+                  {log.date === today ? (
+                    <button type="button" className="btn danger sm" onClick={() => void onDelete(log.id)}>
+                      Delete
+                    </button>
+                  ) : (
+                    <span className="muted" title="Past days are locked to keep the competition fair">
+                      🔒 Locked
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}
