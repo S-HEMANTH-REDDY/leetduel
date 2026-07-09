@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "createdAt": "2026-07-09T04:00:48.505Z",
+  "logs": [],
+  "displayNames": {
+    "hemanth": "Hemanth",
+    "friend": "Friend"
+  },
+  "paymentsCleared": {
+    "hemanth": 0,
+    "friend": 0
+  },
+  "paymentHistory": []
+}
