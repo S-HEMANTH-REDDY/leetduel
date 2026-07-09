@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Deploys LeetDuel to GitHub Pages (Brave-trusted) with a shared
- * restful-api.dev object for state (keyless, CORS, persistent).
+ * Firebase Realtime Database for state (reliable, instant, CORS, no cap).
  */
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, rmSync, cpSync, readdirSync } from 'node:fs';
@@ -12,7 +12,7 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const META_PATH = join(root, '.deploy-meta.json');
 const REPO = 'leetduel';
 const OWNER = 'S-HEMANTH-REDDY';
-const API_BASE = 'https://api.restful-api.dev/objects';
+const DB_URL = 'https://leetduel-19229-aac55-default-rtdb.firebaseio.com';
 
 function loadMeta() {
   if (!existsSync(META_PATH)) return null;
@@ -35,52 +35,6 @@ function secret(name, value) {
     input: value,
     stdio: ['pipe', 'inherit', 'inherit'],
   });
-}
-
-const emptyState = () => {
-  const now = new Date().toISOString();
-  return {
-    version: 1,
-    createdAt: now,
-    resetAt: now,
-    tombstones: {},
-    logs: [],
-    displayNames: { hemanth: 'Hemanth', abhiram: 'Abhiram' },
-    pins: { hemanth: '', abhiram: '' },
-    paymentsCleared: { hemanth: 0, abhiram: 0 },
-    paymentHistory: [],
-  };
-};
-
-async function ensureApiObject(meta) {
-  if (meta?.apiId) {
-    // Reuse the existing object unless it is *definitively* gone (404).
-    // Rate-limit (405/429) or transient errors must NOT trigger a recreate,
-    // otherwise a deploy would silently wipe both players' shared data.
-    let status = 0;
-    try {
-      const check = await fetch(`${API_BASE}/${meta.apiId}`);
-      status = check.status;
-    } catch {
-      status = 0; // network error — assume it still exists
-    }
-    if (status !== 404) {
-      console.log(`→ Reusing shared state object ${meta.apiId} (verify status ${status || 'n/a'})`);
-      return meta.apiId;
-    }
-    console.log('→ Previous state object is gone (404); creating a new one…');
-  }
-  console.log('→ Creating shared state object…');
-  const res = await fetch(API_BASE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: 'LeetDuel', data: emptyState() }),
-  });
-  if (!res.ok) throw new Error(`state object create failed (${res.status}): ${await res.text()}`);
-  const body = await res.json();
-  if (!body.id) throw new Error('No id returned for state object');
-  console.log(`→ State object id ${body.id}`);
-  return body.id;
 }
 
 function ensureRepo() {
@@ -120,8 +74,7 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          VITE_API_BASE: \${{ secrets.VITE_API_BASE }}
-          VITE_API_ID: \${{ secrets.VITE_API_ID }}
+          VITE_DB_URL: \${{ secrets.VITE_DB_URL }}
       - name: Prepare Pages artifact
         run: |
           cp dist/index.html dist/404.html
@@ -141,12 +94,11 @@ jobs:
         uses: actions/deploy-pages@v4
 `;
 
-function pushAndDeploy(apiId) {
+function pushAndDeploy() {
   console.log('→ Setting Actions secrets…');
-  secret('VITE_API_BASE', API_BASE);
-  secret('VITE_API_ID', apiId);
+  secret('VITE_DB_URL', DB_URL);
 
-  writeFileSync(join(root, '.env.production'), `VITE_API_BASE=${API_BASE}\nVITE_API_ID=${apiId}\n`);
+  writeFileSync(join(root, '.env.production'), `VITE_DB_URL=${DB_URL}\n`);
 
   try {
     execSync(`gh api -X PUT repos/${OWNER}/${REPO}/pages --input -`, {
@@ -216,7 +168,7 @@ function pushAndDeploy(apiId) {
     const asset = /\/leetduel\/assets\/[^"]+\.js/.exec(html)?.[0];
     if (asset) {
       const js = execSync(`curl -sS https://s-hemanth-reddy.github.io${asset}`, { encoding: 'utf8' });
-      if (js.includes(apiId)) {
+      if (js.includes('leetduel-19229-aac55')) {
         console.log('→ Live site updated with new build');
         return;
       }
@@ -229,15 +181,13 @@ function pushAndDeploy(apiId) {
 
 async function main() {
   ensureRepo();
-  const meta = loadMeta();
-  const apiId = await ensureApiObject(meta);
-  pushAndDeploy(apiId);
+  pushAndDeploy();
 
   const link = `https://${OWNER.toLowerCase()}.github.io/${REPO}/`;
   writeFileSync(
     META_PATH,
     JSON.stringify(
-      { deployedAt: new Date().toISOString(), host: 'github-pages', owner: OWNER, repo: REPO, apiBase: API_BASE, apiId, link },
+      { deployedAt: new Date().toISOString(), host: 'github-pages', owner: OWNER, repo: REPO, dbUrl: DB_URL, link },
       null,
       2,
     ),

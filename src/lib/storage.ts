@@ -25,15 +25,15 @@ const SESSION_KEY = 'leetcode-duel-session';
 /**
  * Shared backend: restful-api.dev (keyless, CORS-enabled, persistent).
  * Site host: GitHub Pages (trusted by browsers).
- * Injected at deploy time: VITE_API_BASE, VITE_API_ID.
+ * Shared backend: Firebase Realtime Database (reliable, instant, no request cap).
+ * Injected at deploy time: VITE_DB_URL.
  */
 export const REMOTE = {
-  base: (import.meta.env.VITE_API_BASE as string | undefined) || 'https://api.restful-api.dev/objects',
-  id: import.meta.env.VITE_API_ID as string | undefined,
+  dbUrl: ((import.meta.env.VITE_DB_URL as string | undefined) || '').replace(/\/+$/, ''),
 };
 
 export function remoteConfigured(): boolean {
-  return Boolean(REMOTE.id);
+  return Boolean(REMOTE.dbUrl);
 }
 
 export function emptyState(): CompetitionState {
@@ -212,39 +212,40 @@ export function signature(state: CompetitionState): string {
 
 const REQUEST_TIMEOUT_MS = 8000;
 
-async function withTimeout<T>(p: Promise<T>): Promise<T> {
+async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    return await p;
+    return await fetch(url, { ...init, signal: controller.signal });
   } finally {
     clearTimeout(timer);
   }
 }
 
+// The whole competition lives at /state in the Realtime Database.
+function stateUrl(): string {
+  return `${REMOTE.dbUrl}/state.json`;
+}
+
 export async function fetchRemote(): Promise<CompetitionState | null> {
   if (!remoteConfigured()) return null;
-  const res = await withTimeout(
-    fetch(`${REMOTE.base}/${REMOTE.id}`, {
-      headers: { Accept: 'application/json' },
-      cache: 'no-store',
-    }),
-  );
+  const res = await fetchWithTimeout(stateUrl(), {
+    headers: { Accept: 'application/json' },
+    cache: 'no-store',
+  });
   if (!res.ok) throw new Error(`load ${res.status}`);
-  const obj = await res.json();
-  const data = obj && typeof obj === 'object' && 'data' in obj ? obj.data : obj;
+  const data = await res.json();
+  if (!data) return null; // empty database node
   return normalizeState(data as CompetitionState);
 }
 
 export async function saveRemote(state: CompetitionState): Promise<void> {
   if (!remoteConfigured()) return;
-  const res = await withTimeout(
-    fetch(`${REMOTE.base}/${REMOTE.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'LeetDuel', data: state }),
-    }),
-  );
+  const res = await fetchWithTimeout(stateUrl(), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(state),
+  });
   if (!res.ok) throw new Error(`save ${res.status}`);
 }
 
