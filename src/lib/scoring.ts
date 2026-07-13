@@ -152,9 +152,14 @@ export function countMissedDays(
 
 export function computePayTab(state: CompetitionState, userId: UserId, asOf = new Date()) {
   const { missed, missedDates } = countMissedDays(state, userId, asOf);
+  const otherId: UserId = userId === 'hemanth' ? 'abhiram' : 'hemanth';
+  const otherMissed = countMissedDays(state, otherId, asOf).missed;
+  // Mutual misses cancel out: if I missed 3 and they missed 2, only the
+  // difference (1) is actually owed. Equal misses ⇒ nobody owes.
+  const netOwed = Math.max(0, missed - otherMissed);
   const timesPaid = state.paymentsCleared?.[userId] ?? 0;
-  const owesOutings = Math.max(0, missed - timesPaid);
-  return { missed, missedDates, timesPaid, owesOutings };
+  const owesOutings = Math.max(0, netOwed - timesPaid);
+  return { missed, missedDates, otherMissed, netOwed, timesPaid, owesOutings };
 }
 
 export function computeUserStats(

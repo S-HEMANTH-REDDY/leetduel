@@ -21,6 +21,23 @@ export function PayTab() {
     });
   }, [state]);
 
+  const owerText = useMemo(() => {
+    const [a, b] = rows;
+    const cancelled = Math.min(a.missed, b.missed);
+    const tally = `${a.name} missed ${a.missed} · ${b.name} missed ${b.missed}${
+      cancelled > 0 ? ` — ${cancelled} cancel out` : ''
+    }.`;
+    const ower = rows.find((r) => r.owesOutings > 0);
+    if (!ower) {
+      return { owes: false, text: `All square 🤝 — nobody owes an outing right now. ${tally}` };
+    }
+    const n = ower.owesOutings;
+    return {
+      owes: true,
+      text: `${ower.name} owes ${n} outing${n === 1 ? '' : 's'} 💸. ${tally}`,
+    };
+  }, [rows]);
+
   function onPaid(userId: UserId) {
     if (!confirm('Confirm you covered the outing bill? This lowers your owe count by 1.')) {
       return;
@@ -46,10 +63,15 @@ export function PayTab() {
           <h2>Who pays outside?</h2>
           <p className="muted">
             Any day under {DAILY_GOAL} problems (any Easy/Medium/Hard mix) — or not logged before
-            11:59:59 PM — means you owe the next outing bill. You can only clear{' '}
-            <strong>your own</strong> tab: tap <strong>I paid</strong> after you cover a bill.
+            11:59:59 PM — is a strike. Both players’ strikes cancel out, so only the{' '}
+            <strong>difference</strong> is owed: whoever missed more pays the gap. Tap{' '}
+            <strong>I paid</strong> after you cover a bill.
           </p>
         </div>
+      </div>
+
+      <div className={`pay-summary ${owerText.owes ? 'owes' : 'square'}`}>
+        {owerText.text}
       </div>
 
       <div className="table-wrap">
