@@ -62,6 +62,15 @@ function Shell() {
         </div>
       )}
 
+      <section className="hero">
+        <span className="hero-eyebrow">The daily coding duel</span>
+        <h1 className="hero-title">Two coders. One streak.</h1>
+        <p className="hero-sub">
+          Five problems a day, logged with proof before midnight. Miss a day and you’re buying the
+          next outing.
+        </p>
+      </section>
+
       <main className="layout">
         <Leaderboard />
         <PayTab />

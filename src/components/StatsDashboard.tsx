@@ -31,13 +31,15 @@ import {
 } from '../lib/scoring';
 import type { UserId } from '../lib/types';
 
-const PIE_COLORS = ['#34d39a', '#fbbf24', '#fb7185'];
-const AXIS = '#90a0ba';
-const GRID = 'rgba(255,255,255,0.08)';
+const PIE_COLORS = ['#34c759', '#ff9f0a', '#ff3b30'];
+const AXIS = '#86868b';
+const GRID = 'rgba(0,0,0,0.07)';
 const TOOLTIP_STYLE = {
-  background: '#0b0f17',
-  border: '1px solid rgba(255,255,255,0.12)',
-  borderRadius: 10,
+  background: '#ffffff',
+  border: '1px solid rgba(0,0,0,0.1)',
+  borderRadius: 12,
+  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+  color: '#1d1d1f',
 } as const;
 
 export function StatsDashboard() {
@@ -173,8 +175,8 @@ export function StatsDashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
                 <XAxis dataKey="label" stroke={AXIS} fontSize={11} />
                 <YAxis stroke={AXIS} fontSize={11} allowDecimals={false} />
-                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={TOOLTIP_STYLE} />
-                <Bar dataKey="problems" fill="#34d39a" radius={[5, 5, 0, 0]} />
+                <Tooltip cursor={{ fill: 'rgba(0,0,0,0.04)' }} contentStyle={TOOLTIP_STYLE} />
+                <Bar dataKey="problems" fill="#0071e3" radius={[5, 5, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
