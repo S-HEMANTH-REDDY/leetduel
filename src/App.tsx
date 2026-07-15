@@ -6,6 +6,7 @@ import { PayTab } from './components/PayTab';
 import { StatsDashboard } from './components/StatsDashboard';
 import { AdminPanel } from './components/AdminPanel';
 import { ReminderBanner } from './components/ReminderBanner';
+import { ThemeToggle } from './components/ThemeToggle';
 import { remoteConfigured } from './lib/storage';
 
 const SYNC_LABEL: Record<string, string> = {
@@ -40,6 +41,7 @@ function Shell() {
           </div>
         </div>
         <div className="top-actions">
+          <ThemeToggle />
           <span className={`sync-pill ${syncStatus}`} title="Sync status">
             <span className="sync-dot" />
             {SYNC_LABEL[syncStatus] ?? 'Synced'}

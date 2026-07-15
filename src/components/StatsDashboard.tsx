@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -31,21 +31,40 @@ import {
 } from '../lib/scoring';
 import type { UserId } from '../lib/types';
 
-const PIE_COLORS = ['#34c759', '#ff9f0a', '#ff3b30'];
-const AXIS = '#86868b';
-const GRID = 'rgba(0,0,0,0.07)';
-const TOOLTIP_STYLE = {
-  background: '#ffffff',
-  border: '1px solid rgba(0,0,0,0.1)',
-  borderRadius: 12,
-  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-  color: '#1d1d1f',
-} as const;
+function useThemeColors() {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const obs = new MutationObserver(() => setTick((t) => t + 1));
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => obs.disconnect();
+  }, []);
+  return useMemo(() => {
+    const cs = getComputedStyle(document.documentElement);
+    const v = (name: string, fallback: string) => cs.getPropertyValue(name).trim() || fallback;
+    return {
+      axis: v('--faint', '#86868b'),
+      grid: v('--line-strong', 'rgba(0,0,0,0.14)'),
+      accent: v('--accent', '#0071e3'),
+      easy: v('--easy', '#34c759'),
+      medium: v('--medium', '#ff9f0a'),
+      hard: v('--hard', '#ff3b30'),
+      tooltip: {
+        background: v('--card', '#ffffff'),
+        border: `1px solid ${v('--line-strong', 'rgba(0,0,0,0.14)')}`,
+        borderRadius: 12,
+        boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+        color: v('--text', '#1d1d1f'),
+      },
+    };
+  }, [tick]);
+}
 
 export function StatsDashboard() {
   const { state, user } = useApp();
   const [focus, setFocus] = useState<UserId>(user?.id ?? 'hemanth');
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
+  const c = useThemeColors();
+  const pieColors = [c.easy, c.medium, c.hard];
 
   const stats = useMemo(() => computeUserStats(state, focus), [state, focus]);
   const series = useMemo(() => dailySeries(state, focus, 14), [state, focus]);
@@ -172,11 +191,11 @@ export function StatsDashboard() {
           <div className="chart-box">
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={series}>
-                <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
-                <XAxis dataKey="label" stroke={AXIS} fontSize={11} />
-                <YAxis stroke={AXIS} fontSize={11} allowDecimals={false} />
-                <Tooltip cursor={{ fill: 'rgba(0,0,0,0.04)' }} contentStyle={TOOLTIP_STYLE} />
-                <Bar dataKey="problems" fill="#0071e3" radius={[5, 5, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" stroke={c.grid} />
+                <XAxis dataKey="label" stroke={c.axis} fontSize={11} />
+                <YAxis stroke={c.axis} fontSize={11} allowDecimals={false} />
+                <Tooltip cursor={{ fill: 'rgba(128,128,128,0.12)' }} contentStyle={c.tooltip} />
+                <Bar dataKey="problems" fill={c.accent} radius={[5, 5, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -197,10 +216,10 @@ export function StatsDashboard() {
                 <PieChart>
                   <Pie data={pie} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80}>
                     {pie.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      <Cell key={i} fill={pieColors[i % pieColors.length]} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                  <Tooltip contentStyle={c.tooltip} />
                 </PieChart>
               </ResponsiveContainer>
             )}
