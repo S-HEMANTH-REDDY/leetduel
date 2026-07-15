@@ -51,8 +51,11 @@
   --warn-ink: var(--warn-ink);
 
   --nav-bg: rgba(255, 255, 255, 0.72);
-  --glow-1: rgba(0, 113, 227, 0.06);
-  --glow-2: rgba(52, 199, 89, 0.06);
+  --glass-fill: color-mix(in srgb, var(--card) 68%, transparent);
+  --glass-hi: rgba(255, 255, 255, 0.6);
+  --glass-sheen: rgba(255, 255, 255, 0.35);
+  --glow-1: rgba(0, 113, 227, 0.07);
+  --glow-2: rgba(52, 199, 89, 0.07);
 
   --heat0: #ebedf0;
   --heat1: #b7ebc6;
@@ -93,8 +96,11 @@
   --warn-ink: #ffc24d;
 
   --nav-bg: rgba(33, 36, 43, 0.72);
-  --glow-1: rgba(76, 157, 255, 0.12);
-  --glow-2: rgba(52, 199, 89, 0.09);
+  --glass-fill: color-mix(in srgb, var(--card) 66%, transparent);
+  --glass-hi: rgba(255, 255, 255, 0.16);
+  --glass-sheen: rgba(255, 255, 255, 0.08);
+  --glow-1: rgba(76, 157, 255, 0.16);
+  --glow-2: rgba(52, 199, 89, 0.12);
 
   --heat0: rgba(255, 255, 255, 0.06);
   --heat1: #204d33;
@@ -135,8 +141,11 @@
   --warn-ink: #fbbf24;
 
   --nav-bg: rgba(10, 12, 18, 0.72);
-  --glow-1: rgba(10, 132, 255, 0.14);
-  --glow-2: rgba(52, 199, 89, 0.1);
+  --glass-fill: color-mix(in srgb, var(--card) 62%, transparent);
+  --glass-hi: rgba(255, 255, 255, 0.13);
+  --glass-sheen: rgba(255, 255, 255, 0.06);
+  --glow-1: rgba(10, 132, 255, 0.18);
+  --glow-2: rgba(52, 199, 89, 0.13);
 
   --heat0: rgba(255, 255, 255, 0.05);
   --heat1: #14513a;
@@ -290,13 +299,15 @@ p {
 .login-card {
   position: relative;
   width: min(430px, 100%);
-  background: var(--card);
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 40%), var(--glass-fill);
   border: 1px solid var(--line);
   border-radius: 28px;
   padding: 36px;
   display: grid;
   gap: 14px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-hi);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   animation: rise 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   text-align: center;
 }
@@ -445,19 +456,22 @@ textarea:focus {
 /* ---------- buttons ---------- */
 .btn {
   border: 1px solid var(--line-strong);
-  background: var(--card);
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 55%), var(--glass-fill);
   color: var(--text);
   border-radius: var(--pill);
   padding: 10px 18px;
   cursor: pointer;
   font-weight: 500;
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  box-shadow: inset 0 1px 0 var(--glass-hi);
   transition: transform 0.12s ease, background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .btn:hover {
   transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--text) 22%, var(--line));
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 var(--glass-hi);
 }
 
 .btn:active {
@@ -472,21 +486,38 @@ textarea:focus {
 }
 
 .btn.primary {
-  background: var(--accent);
+  background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.35),
+      rgba(255, 255, 255, 0.05) 48%,
+      transparent 52%
+    ),
+    var(--accent);
   border-color: transparent;
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 6px 18px -6px rgba(0, 113, 227, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 8px 22px -8px color-mix(in srgb, var(--accent) 75%, transparent);
 }
 
 .btn.primary:hover {
-  background: var(--accent-press);
-  box-shadow: 0 10px 24px -8px rgba(0, 113, 227, 0.7);
+  background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.42),
+      rgba(255, 255, 255, 0.08) 48%,
+      transparent 52%
+    ),
+    var(--accent-press);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 12px 28px -8px color-mix(in srgb, var(--accent) 85%, transparent);
 }
 
 .btn.ghost {
   background: transparent;
   border-color: var(--line-strong);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
 }
 
 .btn.danger {
@@ -525,10 +556,10 @@ textarea:focus {
   flex-wrap: wrap;
   border-radius: var(--pill);
   border: 1px solid var(--line);
-  background: var(--nav-bg);
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 60%), var(--nav-bg);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 var(--glass-hi);
 }
 
 .brand {
@@ -586,8 +617,11 @@ textarea:focus {
   font-size: 0.8rem;
   font-weight: 500;
   border: 1px solid var(--line);
-  background: var(--bg-tint);
+  background: var(--glass-fill);
   color: var(--muted);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  box-shadow: inset 0 1px 0 var(--glass-hi);
 }
 
 .sync-dot {
@@ -601,7 +635,7 @@ textarea:focus {
 .sync-pill.idle {
   color: var(--ok-ink);
   border-color: color-mix(in srgb, var(--easy) 40%, var(--line));
-  background: color-mix(in srgb, var(--easy) 10%, var(--mix));
+  background: color-mix(in srgb, var(--easy) 18%, transparent);
 }
 .sync-pill.saved .sync-dot,
 .sync-pill.idle .sync-dot {
@@ -611,7 +645,7 @@ textarea:focus {
 .sync-pill.syncing {
   color: var(--accent);
   border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
-  background: color-mix(in srgb, var(--accent) 8%, var(--mix));
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 .sync-pill.syncing .sync-dot {
   background: var(--accent);
@@ -621,7 +655,7 @@ textarea:focus {
 .sync-pill.error {
   color: var(--warn-ink);
   border-color: color-mix(in srgb, var(--warn) 45%, var(--line));
-  background: color-mix(in srgb, var(--warn) 12%, var(--mix));
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
 }
 .sync-pill.error .sync-dot {
   background: var(--warn);
@@ -645,7 +679,10 @@ textarea:focus {
   padding: 3px;
   border-radius: var(--pill);
   border: 1px solid var(--line);
-  background: var(--bg-tint);
+  background: var(--glass-fill);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  box-shadow: inset 0 1px 0 var(--glass-hi);
 }
 
 .theme-toggle button {
@@ -749,11 +786,13 @@ textarea:focus {
 
 .panel {
   position: relative;
-  background: var(--card);
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 42%), var(--glass-fill);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 26px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), inset 0 1px 0 var(--glass-hi);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
 .panel-head {
@@ -889,7 +928,10 @@ th {
   font-size: 0.78rem;
   font-weight: 600;
   border: 1px solid var(--line);
-  background: var(--bg-tint);
+  background: var(--glass-fill);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  box-shadow: inset 0 1px 0 var(--glass-hi);
 }
 
 .legend-pill i {
@@ -925,15 +967,18 @@ th {
   font-weight: 600;
   border: 1px solid var(--line);
   white-space: nowrap;
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  box-shadow: inset 0 1px 0 var(--glass-hi);
 }
 
 .goal-pill.ok {
-  background: color-mix(in srgb, var(--easy) 14%, var(--mix));
+  background: color-mix(in srgb, var(--easy) 20%, transparent);
   color: var(--ok-ink);
   border-color: color-mix(in srgb, var(--easy) 40%, var(--line));
 }
 .goal-pill.miss {
-  background: color-mix(in srgb, var(--danger) 10%, var(--mix));
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
   color: var(--danger);
   border-color: color-mix(in srgb, var(--danger) 35%, var(--line));
 }
@@ -1185,11 +1230,14 @@ th {
 
 .seg {
   display: inline-flex;
-  background: var(--bg);
+  background: var(--glass-fill);
   border: 1px solid var(--line);
   border-radius: var(--pill);
   padding: 4px;
   gap: 2px;
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  box-shadow: inset 0 1px 0 var(--glass-hi);
 }
 
 .seg button {
@@ -1217,19 +1265,21 @@ th {
 }
 
 .stat-card {
-  background: var(--card);
+  background: linear-gradient(180deg, var(--glass-sheen), transparent 45%), var(--glass-fill);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 18px;
   display: grid;
   gap: 8px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 var(--glass-hi);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .stat-card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), inset 0 1px 0 var(--glass-hi);
 }
 
 .stat-card span {
@@ -1246,7 +1296,7 @@ th {
 
 /* headline metric */
 .stat-card:first-child {
-  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 10%, var(--mix)), var(--mix));
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 16%, var(--glass-fill)), var(--glass-fill));
   border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
 }
 .stat-card:first-child strong {
