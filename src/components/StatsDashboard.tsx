@@ -31,7 +31,14 @@ import {
 } from '../lib/scoring';
 import type { UserId } from '../lib/types';
 
-const PIE_COLORS = ['#3ecf8e', '#f5c542', '#ff6b6b'];
+const PIE_COLORS = ['#34d39a', '#fbbf24', '#fb7185'];
+const AXIS = '#90a0ba';
+const GRID = 'rgba(255,255,255,0.08)';
+const TOOLTIP_STYLE = {
+  background: '#0b0f17',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: 10,
+} as const;
 
 export function StatsDashboard() {
   const { state, user } = useApp();
@@ -163,17 +170,11 @@ export function StatsDashboard() {
           <div className="chart-box">
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={series}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#243044" />
-                <XAxis dataKey="label" stroke="#8b9bb4" fontSize={11} />
-                <YAxis stroke="#8b9bb4" fontSize={11} allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{
-                    background: '#121826',
-                    border: '1px solid #2a364a',
-                    borderRadius: 8,
-                  }}
-                />
-                <Bar dataKey="problems" fill="#3ecf8e" radius={[4, 4, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
+                <XAxis dataKey="label" stroke={AXIS} fontSize={11} />
+                <YAxis stroke={AXIS} fontSize={11} allowDecimals={false} />
+                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={TOOLTIP_STYLE} />
+                <Bar dataKey="problems" fill="#34d39a" radius={[5, 5, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -197,13 +198,7 @@ export function StatsDashboard() {
                       <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: '#121826',
-                      border: '1px solid #2a364a',
-                      borderRadius: 8,
-                    }}
-                  />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} />
                 </PieChart>
               </ResponsiveContainer>
             )}

@@ -11,7 +11,20 @@ export function Leaderboard() {
       <div className="panel-head">
         <div>
           <h2>Leaderboard</h2>
-          <p className="muted">Live standings · refreshes every 15s · 5 problems/day (any mix)</p>
+          <p className="muted">
+            Ranked by total points · Points = Easy×1 + Medium×2 + Hard×3 · updates live
+          </p>
+        </div>
+        <div className="score-legend" aria-label="Scoring system">
+          <span className="legend-pill easy">
+            <i />Easy +1
+          </span>
+          <span className="legend-pill medium">
+            <i />Medium +2
+          </span>
+          <span className="legend-pill hard">
+            <i />Hard +3
+          </span>
         </div>
       </div>
       <div className="table-wrap">
@@ -19,9 +32,9 @@ export function Leaderboard() {
           <thead>
             <tr>
               <th>Rank</th>
-              <th>Name</th>
-              <th>Today</th>
-              <th>Total</th>
+              <th>Player</th>
+              <th>Today (pts)</th>
+              <th>Total points</th>
               <th>Solved</th>
               <th>Streak</th>
               <th>Best</th>
@@ -52,7 +65,8 @@ export function Leaderboard() {
                     )}
                   </td>
                   <td>
-                    <strong>{row.totalScore}</strong>
+                    <span className="total-pts">{row.totalScore}</span>
+                    <span className="pts-suffix">pts</span>
                   </td>
                   <td>{row.totalProblems}</td>
                   <td>

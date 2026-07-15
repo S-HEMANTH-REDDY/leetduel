@@ -33,8 +33,11 @@ function Shell() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <span className="brand-mark">LeetDuel</span>
-          <span className="muted hide-sm">5 problems/day · miss → you pay outside</span>
+          <span className="brand-logo">LD</span>
+          <div className="brand-text">
+            <span className="brand-mark">LeetDuel</span>
+            <span className="muted hide-sm brand-tag">5 a day · loser buys the outing</span>
+          </div>
         </div>
         <div className="top-actions">
           <span className={`sync-pill ${syncStatus}`} title="Sync status">
