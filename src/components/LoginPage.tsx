@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useApp } from '../lib/AppContext';
 import { USERS, type UserId } from '../lib/types';
+import { ThemeToggle } from './ThemeToggle';
 
 export function LoginPage() {
   const { state, createPin, loginWithPin } = useApp();
@@ -50,6 +51,14 @@ export function LoginPage() {
 
   return (
     <div className="login-shell">
+      <div className="ambient" aria-hidden>
+        <span className="ambient-orb a" />
+        <span className="ambient-orb b" />
+        <span className="ambient-orb c" />
+      </div>
+      <div className="login-theme">
+        <ThemeToggle />
+      </div>
       <div className="login-glow" aria-hidden />
       <div className="login-card">
         <p className="brand-mark">LeetDuel</p>

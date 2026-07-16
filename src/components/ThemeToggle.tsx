@@ -15,14 +15,17 @@ export function getInitialTheme(): Theme {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === 'light' || saved === 'mid' || saved === 'dark') return saved;
   }
-  return 'light';
+  return 'dark';
 }
 
 export function applyTheme(theme: Theme) {
   document.documentElement.dataset.theme = theme;
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
-    meta.setAttribute('content', theme === 'light' ? '#f5f5f7' : theme === 'mid' ? '#21242b' : '#0a0c12');
+    meta.setAttribute(
+      'content',
+      theme === 'light' ? '#eef0f6' : theme === 'mid' ? '#16182a' : '#05060f',
+    );
   }
 }
 

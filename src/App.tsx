@@ -32,6 +32,11 @@ function Shell() {
 
   return (
     <div className="app">
+      <div className="ambient" aria-hidden>
+        <span className="ambient-orb a" />
+        <span className="ambient-orb b" />
+        <span className="ambient-orb c" />
+      </div>
       <header className="topbar">
         <div className="brand">
           <span className="brand-logo">LD</span>
